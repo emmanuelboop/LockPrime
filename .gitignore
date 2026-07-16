@@ -1,0 +1,96 @@
+# =============================================================================
+# LockPrime — root .gitignore
+# Covers locked-vault-client (Vite/React), locked-vault-server (Node/Prisma),
+# and shared workspace folders.
+# =============================================================================
+
+# --- Dependencies ---
+node_modules/
+
+# --- Environment & secrets (never commit) ---
+.env
+.env.*
+!.env.example
+!.env*.example
+
+# Common secret/credential filenames
+*.pem
+*.key
+credentials.json
+secrets.json
+
+# --- Build output ---
+dist/
+dist-ssr/
+build/
+out/
+.vite/
+
+# --- Logs ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Test & coverage ---
+coverage/
+.nyc_output/
+*.lcov
+
+# --- Caches ---
+.cache/
+.eslintcache
+*.tsbuildinfo
+.turbo/
+.parcel-cache/
+.npm/
+
+# --- Prisma (generated client lives in node_modules/.prisma) ---
+# Custom Prisma output path, if configured:
+**/generated/
+
+# --- Runtime / local overrides ---
+*.local
+
+# --- OS files ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# --- Editors & IDEs ---
+.idea/
+*.swp
+*.swo
+*~
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# Cursor / local AI tooling (optional local config)
+.cursor/
+
+# --- Package managers (keep lockfiles; ignore alternate manager artifacts) ---
+.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# --- Deployment platforms (if added later) ---
+.vercel/
+.netlify/
+
+# --- Misc ---
+*.tgz
+*.tmp
+*.temp
