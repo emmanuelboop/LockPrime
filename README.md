@@ -75,24 +75,51 @@ The client runs at `http://localhost:5173` and expects the API at `http://localh
 From `locked-vault-server/`:
 
 ```bash
-# All tests (requires a reachable PostgreSQL database)
-npm test
-
 # Unit tests only (no database required)
 npm run test:unit
 
-# Check database connectivity
+# Integration tests (requires a dedicated test database)
+npm run test:integration
+
+# All tests
+npm test
+
+# Verify test database connectivity
 npm run test:db
 ```
 
-For local development, consider a separate test database:
+### Dedicated test database (recommended)
+
+Integration tests **delete all users, vaults, and transactions** before each test. Use a separate database so your dev data and login sessions stay intact.
+
+**Option A — Neon branch (easiest if you already use Neon)**
+
+1. In the [Neon console](https://console.neon.tech), open your project
+2. Create a branch (e.g. `test`)
+3. Copy the branch connection string
+
+**Option B — Local PostgreSQL**
 
 ```bash
-cp .env.test.example .env.test
-# Set TEST_DATABASE_URL in .env.test
+createdb lockprime_test
+# Use: postgresql://USER:PASSWORD@localhost:5432/lockprime_test
 ```
 
-Integration tests wipe all users, vaults, and transactions in the target database between runs.
+**Configure and prepare**
+
+```bash
+cd locked-vault-server
+cp .env.test.example .env.test
+# Edit .env.test and set TEST_DATABASE_URL
+
+npm run test:prepare   # apply migrations to the test database
+npm run test:db        # confirm connectivity
+npm test
+```
+
+If `TEST_DATABASE_URL` is not set, integration tests **refuse to run** against your `.env` development database (unless you explicitly set `ALLOW_DEV_DATABASE_TESTS=true` in `.env.test`).
+
+GitHub Actions uses an isolated Postgres container — no extra setup needed in CI.
 
 ## Environment variables
 

@@ -69,8 +69,10 @@ jobs:
           --health-retries 5
 
     env:
+      TEST_DATABASE_URL: postgresql://test:test@localhost:5432/lockprime_test
       DATABASE_URL: postgresql://test:test@localhost:5432/lockprime_test
       JWT_SECRET: ci-test-jwt-secret
+      CI: true
 
     steps:
       - uses: actions/checkout@v4
