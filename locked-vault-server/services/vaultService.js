@@ -8,6 +8,7 @@ const {
 const {
     serializeVault,
     serializeTransaction,
+    serializeMoney,
 } = require("../utils/money");
 
 const createBusinessError = (message, statusCode) => {
@@ -217,10 +218,45 @@ const getTransactions = async (vaultId, userId) => {
 
 };
 
+const deleteVault = async (vaultId, userId) => {
+    const vault = await prisma.vault.findFirst({
+        where: {
+            id: vaultId,
+            userId,
+        },
+    });
+
+    if (!vault) {
+        throw createBusinessError("Vault not found", 404);
+    }
+
+    if (serializeMoney(vault.balance) !== 0) {
+        throw createBusinessError(
+            "Vault must have a zero balance before it can be deleted",
+            400
+        );
+    }
+
+    await prisma.$transaction(async (tx) => {
+        await tx.transaction.deleteMany({
+            where: {
+                vaultId,
+            },
+        });
+
+        await tx.vault.delete({
+            where: {
+                id: vaultId,
+            },
+        });
+    });
+};
+
 module.exports = {
     createVault,
     getVaults,
     depositMoney,
     withdrawMoney,
     getTransactions,
+    deleteVault,
 };

@@ -9,6 +9,7 @@ const {
   depositMoney,
   withdrawMoney,
   getTransactions,
+  deleteVault,
 } = require("../controllers/vaultController");
 
 router.post("/", authenticate, createVault);
@@ -16,5 +17,6 @@ router.get("/", authenticate, getVaults);
 router.post("/:vaultId/deposit", authenticate, depositMoney);
 router.post("/:vaultId/withdraw", authenticate, withdrawMoney);
 router.get("/:vaultId/transactions", authenticate, getTransactions);
+router.delete("/:vaultId", authenticate, deleteVault);
 
 module.exports = router;

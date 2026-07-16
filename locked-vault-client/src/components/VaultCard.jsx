@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
-import AddMoneyModal from "./AddMoneyModal";
 import VaultLockStatus from "@/components/VaultLockStatus";
+import formatMoney from "@/utils/formatMoney";
 
 function VaultCard({ vault }) {
     return (
@@ -15,15 +15,11 @@ function VaultCard({ vault }) {
                 </div>
 
                 <p className="text-3xl font-bold mt-4">
-                    ${Number(vault.balance).toLocaleString()}
+                    ${formatMoney(vault.balance)}
                 </p>
 
                 <div className="mt-2">
                     <VaultLockStatus vault={vault} variant="compact" />
-                </div>
-
-                <div className="mt-4" onClick={(event) => event.stopPropagation()}>
-                    <AddMoneyModal vault={vault} />
                 </div>
             </CardContent>
         </Card>

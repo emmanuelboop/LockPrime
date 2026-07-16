@@ -87,6 +87,23 @@ describe("vault API", () => {
 
             assert.equal(response.status, 404);
         });
+
+        it("prevents another user from deleting a vault", async () => {
+            const owner = await createUserAndToken();
+            const otherUser = await createUserAndToken();
+
+            const vaultResponse = await createVault(owner.token, {
+                name: "Owner Vault",
+                amount: 0,
+                lockDays: 30,
+            });
+
+            const response = await request(app)
+                .delete(`/api/vaults/${vaultResponse.body.id}`)
+                .set(authHeader(otherUser.token));
+
+            assert.equal(response.status, 404);
+        });
     });
 
     describe("amount validation", () => {
@@ -316,6 +333,61 @@ describe("vault API", () => {
 
             assert.equal(response.status, 400);
             assert.equal(response.body.message, "Insufficient funds");
+        });
+    });
+
+    describe("vault deletion", () => {
+        it("deletes an empty vault and its transactions", async () => {
+            const { token } = await createUserAndToken();
+            const vaultResponse = await createVault(token, {
+                name: "Delete Me",
+                amount: 100,
+                lockDays: 30,
+            });
+
+            await setVaultUnlocked(vaultResponse.body.id);
+
+            await request(app)
+                .post(`/api/vaults/${vaultResponse.body.id}/withdraw`)
+                .set(authHeader(token))
+                .send({ amount: 100 });
+
+            const deleteResponse = await request(app)
+                .delete(`/api/vaults/${vaultResponse.body.id}`)
+                .set(authHeader(token));
+
+            assert.equal(deleteResponse.status, 204);
+
+            const vaultsResponse = await request(app)
+                .get("/api/vaults")
+                .set(authHeader(token));
+
+            assert.equal(vaultsResponse.body.length, 0);
+        });
+
+        it("rejects deleting a vault with a remaining balance", async () => {
+            const { token } = await createUserAndToken();
+            const vaultResponse = await createVault(token, {
+                name: "Funded Vault",
+                amount: 50,
+                lockDays: 30,
+            });
+
+            const response = await request(app)
+                .delete(`/api/vaults/${vaultResponse.body.id}`)
+                .set(authHeader(token));
+
+            assert.equal(response.status, 400);
+            assert.equal(
+                response.body.message,
+                "Vault must have a zero balance before it can be deleted"
+            );
+        });
+
+        it("rejects unauthenticated delete requests", async () => {
+            const response = await request(app).delete("/api/vaults/some-vault-id");
+
+            assert.equal(response.status, 401);
         });
     });
 });

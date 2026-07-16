@@ -39,3 +39,6 @@ export const withdrawMoney = async (vaultId, amount) => {
   return response.data;
 };
 
+export const deleteVault = async (vaultId) => {
+  await api.delete(`/api/vaults/${vaultId}`);
+};

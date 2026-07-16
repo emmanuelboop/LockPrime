@@ -97,10 +97,24 @@ const getTransactions = async (req, res) => {
     }
 };
 
+const deleteVault = async (req, res) => {
+    try {
+        await vaultService.deleteVault(
+            req.params.vaultId,
+            req.user.userId
+        );
+
+        res.status(204).send();
+    } catch (error) {
+        sendError(error, res);
+    }
+};
+
 module.exports = {
   createVault,
   getVaults,
   depositMoney,
   withdrawMoney,
   getTransactions,
+  deleteVault,
 };
