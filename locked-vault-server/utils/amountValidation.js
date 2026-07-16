@@ -4,7 +4,7 @@ const createValidationError = (message) => {
     return error;
 };
 
-const { hasValidMoneyPrecision, serializeMoney } = require("./money");
+const { hasValidMoneyPrecision, serializeMoney, MAX_MONEY_AMOUNT } = require("./money");
 
 const parseAmount = (amount) => {
     if (amount === undefined || amount === null || amount === "") {
@@ -24,6 +24,12 @@ const normalizeMoneyAmount = (parsed) => {
     if (!hasValidMoneyPrecision(parsed)) {
         throw createValidationError(
             "Amount must have at most 2 decimal places"
+        );
+    }
+
+    if (parsed > MAX_MONEY_AMOUNT) {
+        throw createValidationError(
+            "Amount exceeds the maximum allowed value"
         );
     }
 

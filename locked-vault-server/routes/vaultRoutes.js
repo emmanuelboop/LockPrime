@@ -10,10 +10,12 @@ const {
   withdrawMoney,
   getTransactions,
   deleteVault,
+  renameVault,
 } = require("../controllers/vaultController");
 
 router.post("/", authenticate, createVault);
 router.get("/", authenticate, getVaults);
+router.patch("/:vaultId", authenticate, renameVault);
 router.post("/:vaultId/deposit", authenticate, depositMoney);
 router.post("/:vaultId/withdraw", authenticate, withdrawMoney);
 router.get("/:vaultId/transactions", authenticate, getTransactions);

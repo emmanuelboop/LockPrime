@@ -110,6 +110,20 @@ const deleteVault = async (req, res) => {
     }
 };
 
+const renameVault = async (req, res) => {
+    try {
+        const vault = await vaultService.renameVault(
+            req.params.vaultId,
+            req.body.name,
+            req.user.userId
+        );
+
+        res.json(vault);
+    } catch (error) {
+        sendError(error, res);
+    }
+};
+
 module.exports = {
   createVault,
   getVaults,
@@ -117,4 +131,5 @@ module.exports = {
   withdrawMoney,
   getTransactions,
   deleteVault,
+  renameVault,
 };

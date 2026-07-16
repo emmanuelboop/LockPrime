@@ -51,7 +51,7 @@ function AddMoneyModal({ vault, refreshVaults }) {
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" className="w-full">
                     Add Money
                 </Button>
             </DialogTrigger>

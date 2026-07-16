@@ -104,6 +104,24 @@ describe("vault API", () => {
 
             assert.equal(response.status, 404);
         });
+
+        it("prevents another user from renaming a vault", async () => {
+            const owner = await createUserAndToken();
+            const otherUser = await createUserAndToken();
+
+            const vaultResponse = await createVault(owner.token, {
+                name: "Owner Vault",
+                amount: 0,
+                lockDays: 30,
+            });
+
+            const response = await request(app)
+                .patch(`/api/vaults/${vaultResponse.body.id}`)
+                .set(authHeader(otherUser.token))
+                .send({ name: "Hacked Name" });
+
+            assert.equal(response.status, 404);
+        });
     });
 
     describe("amount validation", () => {
@@ -386,6 +404,56 @@ describe("vault API", () => {
 
         it("rejects unauthenticated delete requests", async () => {
             const response = await request(app).delete("/api/vaults/some-vault-id");
+
+            assert.equal(response.status, 401);
+        });
+    });
+
+    describe("vault rename", () => {
+        it("renames a vault for the owner", async () => {
+            const { token } = await createUserAndToken();
+            const vaultResponse = await createVault(token, {
+                name: "Old Name",
+                amount: 0,
+                lockDays: 30,
+            });
+
+            const response = await request(app)
+                .patch(`/api/vaults/${vaultResponse.body.id}`)
+                .set(authHeader(token))
+                .send({ name: "  New Name  " });
+
+            assert.equal(response.status, 200);
+            assert.equal(response.body.name, "New Name");
+
+            const vaultsResponse = await request(app)
+                .get("/api/vaults")
+                .set(authHeader(token));
+
+            assert.equal(vaultsResponse.body[0].name, "New Name");
+        });
+
+        it("rejects empty vault names", async () => {
+            const { token } = await createUserAndToken();
+            const vaultResponse = await createVault(token, {
+                name: "Named Vault",
+                amount: 0,
+                lockDays: 30,
+            });
+
+            const response = await request(app)
+                .patch(`/api/vaults/${vaultResponse.body.id}`)
+                .set(authHeader(token))
+                .send({ name: "   " });
+
+            assert.equal(response.status, 400);
+            assert.equal(response.body.message, "Vault name is required");
+        });
+
+        it("rejects unauthenticated rename requests", async () => {
+            const response = await request(app)
+                .patch("/api/vaults/some-vault-id")
+                .send({ name: "New Name" });
 
             assert.equal(response.status, 401);
         });

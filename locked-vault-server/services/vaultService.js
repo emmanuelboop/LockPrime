@@ -9,6 +9,7 @@ const {
     serializeVault,
     serializeTransaction,
     serializeMoney,
+    MAX_MONEY_AMOUNT,
 } = require("../utils/money");
 
 const createBusinessError = (message, statusCode) => {
@@ -101,6 +102,15 @@ const depositMoney = async (vaultId, amount, userId) => {
 
     if (!vault) {
         throw createBusinessError("Vault not found", 404);
+    }
+
+    const nextBalance = serializeMoney(vault.balance) + validatedAmount;
+
+    if (nextBalance > MAX_MONEY_AMOUNT) {
+        throw createBusinessError(
+            "Vault balance cannot exceed the maximum allowed amount",
+            400
+        );
     }
 
     const updatedVault = await prisma.$transaction(
@@ -252,6 +262,32 @@ const deleteVault = async (vaultId, userId) => {
     });
 };
 
+const renameVault = async (vaultId, name, userId) => {
+    const validatedName = validateVaultName(name);
+
+    const vault = await prisma.vault.findFirst({
+        where: {
+            id: vaultId,
+            userId,
+        },
+    });
+
+    if (!vault) {
+        throw createBusinessError("Vault not found", 404);
+    }
+
+    const updatedVault = await prisma.vault.update({
+        where: {
+            id: vaultId,
+        },
+        data: {
+            name: validatedName,
+        },
+    });
+
+    return serializeVault(updatedVault);
+};
+
 module.exports = {
     createVault,
     getVaults,
@@ -259,4 +295,5 @@ module.exports = {
     withdrawMoney,
     getTransactions,
     deleteVault,
+    renameVault,
 };

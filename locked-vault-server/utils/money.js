@@ -1,6 +1,7 @@
 const { Prisma } = require("@prisma/client");
 
 const MONEY_SCALE = 2;
+const MAX_MONEY_AMOUNT = 9999999999.99;
 
 const hasValidMoneyPrecision = (value) => {
     const scaled = Math.round(value * 100);
@@ -31,6 +32,7 @@ const serializeTransaction = (transaction) => ({
 
 module.exports = {
     MONEY_SCALE,
+    MAX_MONEY_AMOUNT,
     hasValidMoneyPrecision,
     toMoneyDecimal,
     serializeMoney,

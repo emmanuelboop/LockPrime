@@ -41,6 +41,15 @@ describe("amountValidation", () => {
             expectValidationError(() => validatePositiveAmount(10.999));
             expectValidationError(() => validatePositiveAmount("1.234"));
         });
+
+        it("rejects amounts above the database maximum", () => {
+            expectValidationError(() => validatePositiveAmount(10000000000));
+            expectValidationError(() => validatePositiveAmount("9999999999.999"));
+        });
+
+        it("accepts the maximum allowed amount", () => {
+            assert.equal(validatePositiveAmount(9999999999.99), 9999999999.99);
+        });
     });
 
     describe("validateNonNegativeAmount", () => {

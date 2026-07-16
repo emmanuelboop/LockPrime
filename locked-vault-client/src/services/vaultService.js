@@ -42,3 +42,9 @@ export const withdrawMoney = async (vaultId, amount) => {
 export const deleteVault = async (vaultId) => {
   await api.delete(`/api/vaults/${vaultId}`);
 };
+
+export const renameVault = async (vaultId, name) => {
+  const response = await api.patch(`/api/vaults/${vaultId}`, { name });
+
+  return response.data;
+};

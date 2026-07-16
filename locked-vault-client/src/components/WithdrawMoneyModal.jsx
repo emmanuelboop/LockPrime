@@ -56,56 +56,48 @@ function WithdrawMoneyModal({ vault, refreshVaults }) {
     };
 
     return (
-        <div className="flex-1 space-y-2">
-            <Dialog open={open} onOpenChange={handleOpenChange}>
-                <DialogTrigger asChild>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+                <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={lockStatus.isLocked}
+                >
+                    Withdraw
+                </Button>
+            </DialogTrigger>
+
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>
+                        Withdraw Money
+                    </DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                    <Input
+                        type="number"
+                        placeholder="Amount"
+                        value={amount}
+                        disabled={isSubmitting}
+                        onChange={(event) => {
+                            setAmount(event.target.value);
+                            setError("");
+                        }}
+                    />
+
+                    <InlineFormError message={error} />
+
                     <Button
-                        variant="outline"
                         className="w-full"
-                        disabled={lockStatus.isLocked}
+                        onClick={handleWithdraw}
+                        disabled={isSubmitting || lockStatus.isLocked}
                     >
-                        Withdraw
+                        {isSubmitting ? "Withdrawing..." : "Withdraw"}
                     </Button>
-                </DialogTrigger>
-
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>
-                            Withdraw Money
-                        </DialogTitle>
-                    </DialogHeader>
-
-                    <div className="space-y-4">
-                        <Input
-                            type="number"
-                            placeholder="Amount"
-                            value={amount}
-                            disabled={isSubmitting}
-                            onChange={(event) => {
-                                setAmount(event.target.value);
-                                setError("");
-                            }}
-                        />
-
-                        <InlineFormError message={error} />
-
-                        <Button
-                            className="w-full"
-                            onClick={handleWithdraw}
-                            disabled={isSubmitting || lockStatus.isLocked}
-                        >
-                            {isSubmitting ? "Withdrawing..." : "Withdraw"}
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            {lockStatus.withdrawHelperText && (
-                <p className="text-xs text-muted-foreground text-center">
-                    {lockStatus.withdrawHelperText}
-                </p>
-            )}
-        </div>
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 }
 
