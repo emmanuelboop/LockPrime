@@ -5,7 +5,9 @@ function VaultLockStatus({ vault, variant = "detail" }) {
 
     const badgeClassName = lockStatus.isLocked
         ? "border-amber-200 bg-amber-50 text-amber-900"
-        : "border-green-200 bg-green-50 text-green-900";
+        : lockStatus.neverLocked
+          ? "border-slate-200 bg-slate-50 text-slate-900"
+          : "border-green-200 bg-green-50 text-green-900";
 
     if (variant === "badge") {
         return (

@@ -91,6 +91,8 @@ if (
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-jwt-secret";
 process.env.RETURN_PASSWORD_RESET_TOKEN = "true";
+process.env.RATE_LIMIT_ENABLED = "false";
+process.env.NODE_ENV = "test";
 delete process.env.RESEND_API_KEY;
 
 const prisma = require("../config/prisma");

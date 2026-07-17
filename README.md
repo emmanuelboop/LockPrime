@@ -130,6 +130,15 @@ GitHub Actions uses an isolated Postgres container — no extra setup needed in 
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `JWT_SECRET` | Yes | Secret for signing JWT tokens |
 | `PORT` | No | API port (default `5000`) |
+| `CLIENT_APP_URL` | No | Frontend URL for reset links and CORS (default dev: `http://localhost:5173`) |
+| `CORS_ORIGINS` | No | Comma-separated extra allowed browser origins |
+| `RESEND_API_KEY` | No | Sends real password reset emails when set |
+| `EMAIL_FROM` | No | Verified sender address for Resend |
+| `NODE_ENV` | No | Set to `production` in deployed environments |
+| `ENFORCE_HTTPS` | No | Redirect/block HTTP when `NODE_ENV=production` (default on) |
+| `TRUST_PROXY` | No | Trust `X-Forwarded-Proto` from load balancers (default on in production) |
+| `RATE_LIMIT_ENABLED` | No | Set to `false` to disable rate limits (tests use this) |
+| `NOTIFICATIONS_ENABLED` | No | Set to `false` to disable deposit/withdraw/unlock emails |
 | `TEST_DATABASE_URL` | No | Separate DB for tests (via `.env.test`) |
 
 See `.env.example` and `.env.test.example` in `locked-vault-server/`.

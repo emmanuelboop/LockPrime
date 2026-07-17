@@ -25,7 +25,8 @@ model Vault {
   name        String
   balance     Decimal  @default(0) @db.Decimal(12, 2)
 
-  unlockDate  DateTime
+  unlockDate  DateTime?
+  unlockNotifiedAt DateTime?
 
   createdAt   DateTime @default(now())
 

@@ -32,13 +32,32 @@ const authHeader = (token) => ({
 });
 
 const createVault = async (token, vaultData) => {
+    const { lockDays, ...payload } = vaultData;
+
     const response = await request(app)
         .post("/api/vaults")
         .set(authHeader(token))
-        .send(vaultData);
+        .send(payload);
+
+    if (lockDays && response.status === 201 && response.body.balance > 0) {
+        const lockResponse = await request(app)
+            .post(`/api/vaults/${response.body.id}/lock`)
+            .set(authHeader(token))
+            .send({ lockDays });
+
+        return lockResponse.status === 200
+            ? lockResponse
+            : response;
+    }
 
     return response;
 };
+
+const lockVault = async (token, vaultId, lockDays = 30) =>
+    request(app)
+        .post(`/api/vaults/${vaultId}/lock`)
+        .set(authHeader(token))
+        .send({ lockDays });
 
 const setVaultUnlocked = async (vaultId) => {
     return prisma.vault.update({
@@ -55,5 +74,6 @@ module.exports = {
     createUserAndToken,
     authHeader,
     createVault,
+    lockVault,
     setVaultUnlocked,
 };

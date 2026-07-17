@@ -124,6 +124,20 @@ const renameVault = async (req, res) => {
     }
 };
 
+const lockVault = async (req, res) => {
+    try {
+        const vault = await vaultService.lockVault(
+            req.params.vaultId,
+            req.body.lockDays,
+            req.user.userId
+        );
+
+        res.json(vault);
+    } catch (error) {
+        sendError(error, res);
+    }
+};
+
 module.exports = {
   createVault,
   getVaults,
@@ -132,4 +146,5 @@ module.exports = {
   getTransactions,
   deleteVault,
   renameVault,
+  lockVault,
 };

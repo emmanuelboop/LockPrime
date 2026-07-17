@@ -23,6 +23,8 @@ import VaultCard from "./VaultCard";
 
 import AddMoneyModal from "./AddMoneyModal";
 
+import LockVaultModal from "./LockVaultModal";
+
 import WithdrawMoneyModal from "./WithdrawMoneyModal";
 
 import VaultLockStatus from "./VaultLockStatus";
@@ -42,6 +44,7 @@ import { deleteVault, renameVault } from "@/services/vaultService";
 import getErrorMessage from "@/utils/getErrorMessage";
 
 import formatMoney from "@/utils/formatMoney";
+import getVaultLockStatus from "@/utils/vaultStatus";
 
 
 
@@ -100,6 +103,8 @@ function VaultDetailsModal({ vault, refreshVaults }) {
 
 
     const canDelete = Number(vault.balance) === 0;
+
+    const lockStatus = getVaultLockStatus(vault);
 
 
 
@@ -598,6 +603,13 @@ function VaultDetailsModal({ vault, refreshVaults }) {
 
 
                 <div className="shrink-0 space-y-3 border-t bg-muted/20 px-6 py-4">
+
+                    {lockStatus.canLock && (
+                        <LockVaultModal
+                            vault={vault}
+                            refreshVaults={handleVaultRefresh}
+                        />
+                    )}
 
                     <div className="grid grid-cols-2 gap-2">
 

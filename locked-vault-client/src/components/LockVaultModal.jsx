@@ -11,50 +11,43 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import InlineFormError from "@/components/InlineFormError";
-import { createVault } from "@/services/vaultService";
+import { lockVault } from "@/services/vaultService";
 import getErrorMessage from "@/utils/getErrorMessage";
+import getVaultLockStatus from "@/utils/vaultStatus";
 
-function CreateVaultModal({ refreshVaults }) {
-    const [name, setName] = useState("");
-    const [amount, setAmount] = useState("");
+function LockVaultModal({ vault, refreshVaults }) {
+    const [lockDays, setLockDays] = useState("");
     const [open, setOpen] = useState(false);
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const lockStatus = getVaultLockStatus(vault);
+
+    if (!lockStatus.canLock) {
+        return null;
+    }
 
     const handleOpenChange = (nextOpen) => {
         setOpen(nextOpen);
 
         if (!nextOpen) {
             setError("");
-            setName("");
-            setAmount("");
+            setLockDays("");
         }
     };
 
-    const clearError = () => {
-        if (error) {
-            setError("");
-        }
-    };
-
-    const handleSubmit = async () => {
+    const handleLock = async () => {
         try {
             setIsSubmitting(true);
             setError("");
 
-            await createVault({
-                name,
-                amount: amount === "" ? 0 : amount,
-            });
+            await lockVault(vault.id, lockDays);
 
-            setName("");
-            setAmount("");
+            setLockDays("");
             await refreshVaults();
             setOpen(false);
         } catch (submitError) {
-            setError(
-                getErrorMessage(submitError, "Failed to create vault.")
-            );
+            setError(getErrorMessage(submitError, "Failed to lock vault."));
         } finally {
             setIsSubmitting(false);
         }
@@ -63,38 +56,32 @@ function CreateVaultModal({ refreshVaults }) {
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button>Create Vault</Button>
+                <Button className="w-full">
+                    {lockStatus.lockButtonLabel}
+                </Button>
             </DialogTrigger>
 
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Create Vault</DialogTitle>
+                    <DialogTitle>
+                        {lockStatus.lockButtonLabel} — {vault.name}
+                    </DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                        Create a savings goal, add money, then lock it when
-                        you&apos;re ready to commit.
+                        You won&apos;t be able to withdraw until the lock period
+                        ends. You can still add money while locked.
                     </p>
 
                     <Input
-                        placeholder="Vault Name"
-                        value={name}
-                        disabled={isSubmitting}
-                        onChange={(event) => {
-                            setName(event.target.value);
-                            clearError();
-                        }}
-                    />
-
-                    <Input
                         type="number"
-                        placeholder="Initial amount (optional)"
-                        value={amount}
+                        placeholder="Lock days"
+                        value={lockDays}
                         disabled={isSubmitting}
                         onChange={(event) => {
-                            setAmount(event.target.value);
-                            clearError();
+                            setLockDays(event.target.value);
+                            setError("");
                         }}
                     />
 
@@ -102,10 +89,10 @@ function CreateVaultModal({ refreshVaults }) {
 
                     <Button
                         className="w-full"
-                        onClick={handleSubmit}
+                        onClick={handleLock}
                         disabled={isSubmitting}
                     >
-                        {isSubmitting ? "Creating..." : "Create"}
+                        {isSubmitting ? "Locking..." : lockStatus.lockButtonLabel}
                     </Button>
                 </div>
             </DialogContent>
@@ -113,4 +100,4 @@ function CreateVaultModal({ refreshVaults }) {
     );
 }
 
-export default CreateVaultModal;
+export default LockVaultModal;

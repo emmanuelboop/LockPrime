@@ -48,3 +48,11 @@ export const renameVault = async (vaultId, name) => {
 
   return response.data;
 };
+
+export const lockVault = async (vaultId, lockDays) => {
+  const response = await api.post(`/api/vaults/${vaultId}/lock`, {
+    lockDays,
+  });
+
+  return response.data;
+};

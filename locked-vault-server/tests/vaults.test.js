@@ -3,13 +3,14 @@ require("./setup");
 const { describe, it, before, beforeEach, after } = require("node:test");
 const assert = require("node:assert/strict");
 
-const { resetDatabase, disconnect, ensureDatabaseConnection } = require("./setup");
+const { resetDatabase, disconnect, ensureDatabaseConnection, prisma } = require("./setup");
 const {
     request,
     app,
     createUserAndToken,
     authHeader,
     createVault,
+    lockVault,
     setVaultUnlocked,
 } = require("./helpers");
 
@@ -169,17 +170,127 @@ describe("vault API", () => {
             const negativeAmount = await createVault(token, {
                 name: "Bad Vault",
                 amount: -5,
-                lockDays: 10,
-            });
-
-            const invalidLockDays = await createVault(token, {
-                name: "Bad Vault",
-                amount: 10,
-                lockDays: 0,
             });
 
             assert.equal(negativeAmount.status, 400);
-            assert.equal(invalidLockDays.status, 400);
+        });
+    });
+
+    describe("lock vault", () => {
+        it("creates an open vault without an unlock date", async () => {
+            const { token } = await createUserAndToken();
+
+            const response = await createVault(token, {
+                name: "Open Vault",
+                amount: 0,
+            });
+
+            assert.equal(response.status, 201);
+            assert.equal(response.body.unlockDate, null);
+        });
+
+        it("allows withdrawals from an open funded vault", async () => {
+            const { token } = await createUserAndToken();
+
+            const vaultResponse = await createVault(token, {
+                name: "Open Funded Vault",
+                amount: 50,
+            });
+
+            const response = await request(app)
+                .post(`/api/vaults/${vaultResponse.body.id}/withdraw`)
+                .set(authHeader(token))
+                .send({ amount: 10 });
+
+            assert.equal(response.status, 200);
+            assert.equal(response.body.balance, 40);
+        });
+
+        it("locks a funded vault and blocks withdrawals", async () => {
+            const { token } = await createUserAndToken();
+
+            const vaultResponse = await createVault(token, {
+                name: "Lock Me",
+                amount: 100,
+            });
+
+            const lockResponse = await lockVault(token, vaultResponse.body.id, 30);
+
+            assert.equal(lockResponse.status, 200);
+            assert.ok(lockResponse.body.unlockDate);
+
+            const withdrawResponse = await request(app)
+                .post(`/api/vaults/${vaultResponse.body.id}/withdraw`)
+                .set(authHeader(token))
+                .send({ amount: 10 });
+
+            assert.equal(withdrawResponse.status, 403);
+        });
+
+        it("rejects locking a vault with zero balance", async () => {
+            const { token } = await createUserAndToken();
+
+            const vaultResponse = await createVault(token, {
+                name: "Empty Vault",
+                amount: 0,
+            });
+
+            const response = await lockVault(token, vaultResponse.body.id, 30);
+
+            assert.equal(response.status, 400);
+            assert.equal(
+                response.body.message,
+                "Vault must have funds before it can be locked"
+            );
+        });
+
+        it("rejects locking an already locked vault", async () => {
+            const { token } = await createUserAndToken();
+
+            const vaultResponse = await createVault(token, {
+                name: "Already Locked",
+                amount: 100,
+                lockDays: 30,
+            });
+
+            const response = await lockVault(token, vaultResponse.body.id, 15);
+
+            assert.equal(response.status, 400);
+            assert.equal(response.body.message, "Vault is already locked");
+        });
+
+        it("rejects invalid lock days", async () => {
+            const { token } = await createUserAndToken();
+
+            const vaultResponse = await createVault(token, {
+                name: "Invalid Lock",
+                amount: 50,
+            });
+
+            const response = await lockVault(token, vaultResponse.body.id, 0);
+
+            assert.equal(response.status, 400);
+            assert.equal(
+                response.body.message,
+                "Lock days must be a positive whole number"
+            );
+        });
+
+        it("allows locking again after a vault unlocks", async () => {
+            const { token } = await createUserAndToken();
+
+            const vaultResponse = await createVault(token, {
+                name: "Re-lock Vault",
+                amount: 100,
+                lockDays: 30,
+            });
+
+            await setVaultUnlocked(vaultResponse.body.id);
+
+            const lockResponse = await lockVault(token, vaultResponse.body.id, 14);
+
+            assert.equal(lockResponse.status, 200);
+            assert.ok(new Date(lockResponse.body.unlockDate) > new Date());
         });
     });
 
@@ -456,6 +567,44 @@ describe("vault API", () => {
                 .send({ name: "New Name" });
 
             assert.equal(response.status, 401);
+        });
+    });
+
+    describe("email notifications", () => {
+        it("marks unlocked vaults as notified when the user loads their vaults", async () => {
+            const { token } = await createUserAndToken();
+            const vaultResponse = await createVault(token, {
+                name: "Unlock Me",
+                amount: 0,
+                lockDays: 30,
+            });
+
+            await prisma.vault.update({
+                where: {
+                    id: vaultResponse.body.id,
+                },
+                data: {
+                    unlockDate: new Date(Date.now() - 86400000),
+                },
+            });
+
+            const vaultBefore = await prisma.vault.findUnique({
+                where: {
+                    id: vaultResponse.body.id,
+                },
+            });
+
+            assert.equal(vaultBefore.unlockNotifiedAt, null);
+
+            await request(app).get("/api/vaults").set(authHeader(token));
+
+            const vaultAfter = await prisma.vault.findUnique({
+                where: {
+                    id: vaultResponse.body.id,
+                },
+            });
+
+            assert.ok(vaultAfter.unlockNotifiedAt);
         });
     });
 });

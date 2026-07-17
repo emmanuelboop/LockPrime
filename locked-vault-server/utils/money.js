@@ -30,6 +30,15 @@ const serializeTransaction = (transaction) => ({
     amount: serializeMoney(transaction.amount),
 });
 
+const formatMoney = (value) => {
+    const amount = serializeMoney(value);
+
+    return amount.toLocaleString("en-CA", {
+        minimumFractionDigits: MONEY_SCALE,
+        maximumFractionDigits: MONEY_SCALE,
+    });
+};
+
 module.exports = {
     MONEY_SCALE,
     MAX_MONEY_AMOUNT,
@@ -38,4 +47,5 @@ module.exports = {
     serializeMoney,
     serializeVault,
     serializeTransaction,
+    formatMoney,
 };
