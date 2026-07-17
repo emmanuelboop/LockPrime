@@ -17,3 +17,18 @@ export const changePassword = async (passwordData) => {
 
     return response.data;
 };
+
+export const requestPasswordReset = async (email) => {
+    const response = await api.post("/api/auth/forgot-password", { email });
+
+    return response.data;
+};
+
+export const resetPassword = async ({ token, password }) => {
+    const response = await api.post("/api/auth/reset-password", {
+        token,
+        password,
+    });
+
+    return response.data;
+};

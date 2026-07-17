@@ -3,7 +3,7 @@ require("./setup");
 const { describe, it, before, beforeEach, after } = require("node:test");
 const assert = require("node:assert/strict");
 
-const { resetDatabase, disconnect, ensureDatabaseConnection } = require("./setup");
+const { resetDatabase, disconnect, ensureDatabaseConnection, prisma } = require("./setup");
 const {
     request,
     app,
@@ -117,6 +117,31 @@ describe("auth API", () => {
             assert.equal(response.body.name, "Profile User");
             assert.equal(response.body.email, "profile-user@test.com");
             assert.ok(response.body.createdAt);
+        });
+
+        it("rejects tokens for users deleted from the database", async () => {
+            const { token, user } = await createUserAndToken({
+                name: "Deleted User",
+                email: "deleted-user@test.com",
+            });
+
+            await prisma.user.delete({
+                where: { id: user.id },
+            });
+
+            const meResponse = await request(app)
+                .get("/api/auth/me")
+                .set(authHeader(token));
+
+            assert.equal(meResponse.status, 401);
+            assert.equal(meResponse.body.message, "Invalid token");
+
+            const vaultsResponse = await request(app)
+                .get("/api/vaults")
+                .set(authHeader(token));
+
+            assert.equal(vaultsResponse.status, 401);
+            assert.equal(vaultsResponse.body.message, "Invalid token");
         });
     });
 
@@ -298,6 +323,166 @@ describe("auth API", () => {
             });
 
             assert.equal(newPasswordLogin.status, 200);
+        });
+    });
+
+    describe("password reset", () => {
+        const resetMessage =
+            "If an account exists for that email, a reset link has been sent.";
+
+        it("returns the same response for existing and unknown emails", async () => {
+            await request(app).post("/api/auth/register").send({
+                name: "Reset User",
+                email: "reset-user@test.com",
+                password: "password123",
+            });
+
+            const existingResponse = await request(app)
+                .post("/api/auth/forgot-password")
+                .send({
+                    email: "reset-user@test.com",
+                });
+
+            const unknownResponse = await request(app)
+                .post("/api/auth/forgot-password")
+                .send({
+                    email: "unknown@test.com",
+                });
+
+            assert.equal(existingResponse.status, 200);
+            assert.equal(existingResponse.body.message, resetMessage);
+            assert.ok(existingResponse.body.resetToken);
+
+            assert.equal(unknownResponse.status, 200);
+            assert.equal(unknownResponse.body.message, resetMessage);
+            assert.equal(unknownResponse.body.resetToken, undefined);
+        });
+
+        it("rejects forgot-password without email", async () => {
+            const response = await request(app)
+                .post("/api/auth/forgot-password")
+                .send({});
+
+            assert.equal(response.status, 400);
+            assert.equal(response.body.message, "Email is required");
+        });
+
+        it("resets password with a valid token", async () => {
+            await request(app).post("/api/auth/register").send({
+                name: "Token User",
+                email: "token-user@test.com",
+                password: "password123",
+            });
+
+            const forgotResponse = await request(app)
+                .post("/api/auth/forgot-password")
+                .send({
+                    email: "token-user@test.com",
+                });
+
+            const resetResponse = await request(app)
+                .post("/api/auth/reset-password")
+                .send({
+                    token: forgotResponse.body.resetToken,
+                    password: "newpassword456",
+                });
+
+            assert.equal(resetResponse.status, 200);
+            assert.equal(
+                resetResponse.body.message,
+                "Password reset successfully"
+            );
+
+            const oldPasswordLogin = await request(app).post("/api/auth/login").send({
+                email: "token-user@test.com",
+                password: "password123",
+            });
+
+            assert.equal(oldPasswordLogin.status, 401);
+
+            const newPasswordLogin = await request(app).post("/api/auth/login").send({
+                email: "token-user@test.com",
+                password: "newpassword456",
+            });
+
+            assert.equal(newPasswordLogin.status, 200);
+        });
+
+        it("rejects invalid reset tokens", async () => {
+            const response = await request(app)
+                .post("/api/auth/reset-password")
+                .send({
+                    token: "invalid-token",
+                    password: "newpassword456",
+                });
+
+            assert.equal(response.status, 400);
+            assert.equal(response.body.message, "Invalid or expired reset link");
+        });
+
+        it("rejects expired reset tokens", async () => {
+            await request(app).post("/api/auth/register").send({
+                name: "Expired Token User",
+                email: "expired-token@test.com",
+                password: "password123",
+            });
+
+            const forgotResponse = await request(app)
+                .post("/api/auth/forgot-password")
+                .send({
+                    email: "expired-token@test.com",
+                });
+
+            const tokenHash = require("crypto")
+                .createHash("sha256")
+                .update(forgotResponse.body.resetToken)
+                .digest("hex");
+
+            await prisma.passwordResetToken.update({
+                where: {
+                    tokenHash,
+                },
+                data: {
+                    expiresAt: new Date(Date.now() - 1000),
+                },
+            });
+
+            const response = await request(app)
+                .post("/api/auth/reset-password")
+                .send({
+                    token: forgotResponse.body.resetToken,
+                    password: "newpassword456",
+                });
+
+            assert.equal(response.status, 400);
+            assert.equal(response.body.message, "Invalid or expired reset link");
+        });
+
+        it("rejects passwords shorter than 6 characters on reset", async () => {
+            await request(app).post("/api/auth/register").send({
+                name: "Short Password User",
+                email: "short-password@test.com",
+                password: "password123",
+            });
+
+            const forgotResponse = await request(app)
+                .post("/api/auth/forgot-password")
+                .send({
+                    email: "short-password@test.com",
+                });
+
+            const response = await request(app)
+                .post("/api/auth/reset-password")
+                .send({
+                    token: forgotResponse.body.resetToken,
+                    password: "12345",
+                });
+
+            assert.equal(response.status, 400);
+            assert.equal(
+                response.body.message,
+                "Password must be at least 6 characters"
+            );
         });
     });
 });

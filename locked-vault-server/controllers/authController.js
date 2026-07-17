@@ -1,6 +1,18 @@
 const bcrypt = require("bcrypt");
 const prisma = require("../config/prisma");
 const jwt = require("jsonwebtoken");
+const {
+    hashResetToken,
+    generateResetToken,
+    buildResetUrl,
+    getResetTokenExpiry,
+} = require("../utils/passwordReset");
+const { sendPasswordResetEmail } = require("../services/emailService");
+
+const PASSWORD_RESET_RESPONSE =
+    "If an account exists for that email, a reset link has been sent.";
+
+const MIN_PASSWORD_LENGTH = 6;
 
 const register = async (req, res) => {
     try {
@@ -195,7 +207,7 @@ const changePassword = async (req, res) => {
             });
         }
 
-        if (newPassword.length < 6) {
+        if (newPassword.length < MIN_PASSWORD_LENGTH) {
             return res.status(400).json({
                 message: "New password must be at least 6 characters",
             });
@@ -247,10 +259,152 @@ const changePassword = async (req, res) => {
     }
 };
 
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (typeof email !== "string" || email.trim() === "") {
+            return res.status(400).json({
+                message: "Email is required",
+            });
+        }
+
+        const trimmedEmail = email.trim().toLowerCase();
+
+        const user = await prisma.user.findFirst({
+            where: {
+                email: {
+                    equals: trimmedEmail,
+                    mode: "insensitive",
+                },
+            },
+        });
+
+        if (user) {
+            const rawToken = generateResetToken();
+            const tokenHash = hashResetToken(rawToken);
+
+            await prisma.passwordResetToken.deleteMany({
+                where: {
+                    userId: user.id,
+                },
+            });
+
+            await prisma.passwordResetToken.create({
+                data: {
+                    tokenHash,
+                    expiresAt: getResetTokenExpiry(),
+                    userId: user.id,
+                },
+            });
+
+            const resetUrl = buildResetUrl(rawToken);
+
+            try {
+                await sendPasswordResetEmail({
+                    to: user.email,
+                    resetUrl,
+                    userName: user.name,
+                });
+            } catch (emailError) {
+                console.error(
+                    "[LockPrime] Failed to send password reset email:",
+                    emailError
+                );
+            }
+
+            const responseBody = {
+                message: PASSWORD_RESET_RESPONSE,
+            };
+
+            if (process.env.RETURN_PASSWORD_RESET_TOKEN === "true") {
+                responseBody.resetToken = rawToken;
+            }
+
+            return res.json(responseBody);
+        }
+
+        res.json({
+            message: PASSWORD_RESET_RESPONSE,
+        });
+    } catch (error) {
+        console.log(error);
+
+        res.status(500).json({
+            message: "Server error",
+        });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { token, password } = req.body;
+
+        if (!token || !password) {
+            return res.status(400).json({
+                message: "Token and password are required",
+            });
+        }
+
+        if (password.length < MIN_PASSWORD_LENGTH) {
+            return res.status(400).json({
+                message: "Password must be at least 6 characters",
+            });
+        }
+
+        const tokenHash = hashResetToken(token);
+
+        const resetToken = await prisma.passwordResetToken.findUnique({
+            where: {
+                tokenHash,
+            },
+            include: {
+                user: true,
+            },
+        });
+
+        if (!resetToken || resetToken.expiresAt <= new Date()) {
+            return res.status(400).json({
+                message: "Invalid or expired reset link",
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        await prisma.$transaction([
+            prisma.user.update({
+                where: {
+                    id: resetToken.userId,
+                },
+                data: {
+                    password: hashedPassword,
+                },
+            }),
+            prisma.passwordResetToken.deleteMany({
+                where: {
+                    userId: resetToken.userId,
+                },
+            }),
+        ]);
+
+        res.json({
+            message: "Password reset successfully",
+        });
+    } catch (error) {
+        console.log(error);
+
+        res.status(500).json({
+            message: "Server error",
+        });
+    }
+};
+
 module.exports = {
     register,
     login,
     getMe,
     updateProfile,
     changePassword,
+    forgotPassword,
+    resetPassword,
 };

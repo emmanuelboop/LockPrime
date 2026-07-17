@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,8 @@ function LoginPage() {
         searchParams.get("reason") === "session-expired";
     const registrationComplete =
         searchParams.get("registered") === "true";
+    const passwordResetComplete =
+        searchParams.get("reset") === "true";
 
     const handleLogin = async () => {
         try {
@@ -67,6 +69,10 @@ function LoginPage() {
                         <InlineFormSuccess message="Account created successfully. Please log in." />
                     )}
 
+                    {passwordResetComplete && (
+                        <InlineFormSuccess message="Password reset successfully. Please log in." />
+                    )}
+
                     <Input
                         type="email"
                         placeholder="Email"
@@ -98,6 +104,15 @@ function LoginPage() {
                     >
                         {isSubmitting ? "Logging in..." : "Login"}
                     </Button>
+
+                    <p className="text-center text-sm">
+                        <Link
+                            to="/forgot-password"
+                            className="text-primary underline-offset-4 hover:underline"
+                        >
+                            Forgot password?
+                        </Link>
+                    </p>
                 </CardContent>
             </Card>
         </div>

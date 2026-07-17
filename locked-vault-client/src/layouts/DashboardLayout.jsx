@@ -29,7 +29,7 @@ function DashboardLayout({ children }) {
       <aside className="fixed left-0 top-0 h-screen w-64 border-r bg-background">
         <div className="p-6">
           <h1 className="text-xl font-bold">
-            Locked Vault
+            LockPrime
           </h1>
         </div>
 

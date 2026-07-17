@@ -90,6 +90,8 @@ if (
 }
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-jwt-secret";
+process.env.RETURN_PASSWORD_RESET_TOKEN = "true";
+delete process.env.RESEND_API_KEY;
 
 const prisma = require("../config/prisma");
 
@@ -137,6 +139,7 @@ const ensureDatabaseConnection = async (retries = 3) => {
 const resetDatabase = async () => {
     await prisma.transaction.deleteMany();
     await prisma.vault.deleteMany();
+    await prisma.passwordResetToken.deleteMany();
     await prisma.user.deleteMany();
 };
 

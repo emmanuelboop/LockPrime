@@ -15,7 +15,8 @@ model User {
 
   createdAt DateTime @default(now())
 
-  vaults    Vault[]
+  vaults               Vault[]
+  passwordResetTokens  PasswordResetToken[]
 }
 
 model Vault {
@@ -45,5 +46,17 @@ model Transaction {
 
   vaultId   String
   vault     Vault @relation(fields: [vaultId], references: [id])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
