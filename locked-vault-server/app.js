@@ -1,5 +1,6 @@
 const authRoutes = require("./routes/authRoutes");
 const vaultRoutes = require("./routes/vaultRoutes");
+const webhookRoutes = require("./routes/webhookRoutes");
 
 const express = require("express");
 const { shouldTrustProxy } = require("./config/security");
@@ -19,6 +20,7 @@ app.use(express.json());
 app.use(apiLimiter);
 
 app.use("/api/auth", authRoutes);
+app.use("/api/webhooks", webhookRoutes);
 app.use("/api/vaults", vaultRoutes);
 
 app.get("/", (req, res) => {

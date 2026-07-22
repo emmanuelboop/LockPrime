@@ -802,30 +802,38 @@ Financial operations should eventually also protect against:
 
 Location:
 
+```
 payments/
+├── config.js
+├── constants.js
+├── events/normalizedProviderEvents.js
+├── providers/
+│   ├── PaymentProvider.js      # adapter contract
+│   ├── registry.js
+│   └── simulatedProvider.js    # default dev/test provider
+└── services/
+    ├── ledgerService.js
+    ├── paymentOrchestrationService.js
+    ├── webhookService.js
+    └── reconciliationService.js  # stub
+```
 
-This directory is reserved for future payment infrastructure.
+The payments domain is provider-independent. Vault rules remain in `services/vaultService.js`; all money movement flows through `paymentOrchestrationService.js`.
 
-It should remain separate from the existing simulated vault logic until a real payment architecture is deliberately designed.
+**Default provider:** `PAYMENT_PROVIDER=simulated` (instant settle for dev/tests).
 
-Potential future responsibilities may include:
+**Deposit/withdraw API response shape (always):**
 
-- Deposit initiation
-- Withdrawal initiation
-- Payment provider integrations
-- Interac-related integrations where technically and commercially available
-- Bank transfer integrations
-- Payment status tracking
-- Webhook handling
-- Payment reconciliation
-- Idempotency
-- Provider transaction references
+```json
+{
+  "vault": { "...": "..." },
+  "payment": { "id": "...", "status": "...", "direction": "DEPOSIT|WITHDRAWAL" }
+}
+```
 
-The exact payment provider has not yet been selected.
+**Webhook endpoint:** `POST /api/webhooks/payments/:provider` (501 for simulated).
 
-Do not implement a payment provider solely because the `payments/` directory exists.
-
-A payment architecture plan should be approved first.
+Real provider adapters (Cybrid, VoPay, Flinks, etc.) plug into `payments/providers/registry.js` without changing vault logic.
 
 ---
 
@@ -900,32 +908,32 @@ status = PENDING
 
 ---
 
-# 28. Future Ledger Architecture
+# 28. Ledger Architecture
 
-Before handling real money at production scale, LockPrime should consider implementing a proper financial ledger.
+LockPrime uses an **append-only signed ledger** (`LedgerEntry`) that can evolve into full double-entry accounting later. It is **not** full double-entry today.
 
-The current model may maintain:
+**Account types (per vault):**
 
-vault.balance
+| Account | Meaning |
+|---|---|
+| `AVAILABLE` | Spendable balance; mirrored by `Vault.balance` |
+| `WITHDRAWAL_PENDING` | Reserved during pending withdrawals |
 
-A more robust architecture may use immutable ledger entries.
+**Invariant:**
 
-Example:
+```
+Vault.balance === SUM(LedgerEntry.amount WHERE accountType = 'AVAILABLE')
+```
 
-Vault
-↓
-Ledger Entries
-├── Credit +$500
-├── Credit +$200
-└── Debit -$100
-↓
-Balance = $600
+**Withdrawal reservation (no `Vault.reservedBalance` column):**
 
-The ledger becomes the financial source of truth.
+1. Initiate: paired entries move funds `AVAILABLE → WITHDRAWAL_PENDING`; `Vault.balance` decreases immediately.
+2. Settle: clear `WITHDRAWAL_PENDING` only.
+3. Fail: compensating entries move funds back to `AVAILABLE`.
 
-A stored balance may exist as a derived or synchronized optimization.
+**Migration backfill:** existing vaults received one `OPENING_BALANCE` ledger entry on `AVAILABLE` equal to their pre-migration `Vault.balance`. Pre-ledger history remains in `Transaction`.
 
-Ledger architecture should be deliberately designed before significant real-money handling.
+All monetary values use `Decimal` (Prisma), not JavaScript floating-point arithmetic.
 
 ---
 

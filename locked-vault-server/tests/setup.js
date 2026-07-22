@@ -139,6 +139,9 @@ const ensureDatabaseConnection = async (retries = 3) => {
 };
 
 const resetDatabase = async () => {
+    await prisma.webhookEvent.deleteMany();
+    await prisma.ledgerEntry.deleteMany();
+    await prisma.payment.deleteMany();
     await prisma.transaction.deleteMany();
     await prisma.vault.deleteMany();
     await prisma.passwordResetToken.deleteMany();

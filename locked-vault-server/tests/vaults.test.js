@@ -203,7 +203,7 @@ describe("vault API", () => {
                 .send({ amount: 10 });
 
             assert.equal(response.status, 200);
-            assert.equal(response.body.balance, 40);
+            assert.equal(response.body.vault.balance, 40);
         });
 
         it("locks a funded vault and blocks withdrawals", async () => {
@@ -326,7 +326,7 @@ describe("vault API", () => {
                 .send({ amount: 25 });
 
             assert.equal(response.status, 200);
-            assert.equal(response.body.balance, 125);
+            assert.equal(response.body.vault.balance, 125);
         });
     });
 
@@ -406,7 +406,7 @@ describe("vault API", () => {
                 .get(`/api/vaults/${vaultResponse.body.id}/transactions`)
                 .set(authHeader(token));
 
-            assert.equal(withdrawResponse.body.balance, 60);
+            assert.equal(withdrawResponse.body.vault.balance, 60);
             assert.equal(transactionsResponse.body[0].type, "withdrawal");
             assert.equal(transactionsResponse.body[0].amount, 40);
         });

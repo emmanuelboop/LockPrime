@@ -17,6 +17,7 @@ model User {
 
   vaults               Vault[]
   passwordResetTokens  PasswordResetToken[]
+  payments             Payment[]
 }
 
 model Vault {
@@ -34,6 +35,8 @@ model Vault {
   user        User @relation(fields: [userId], references: [id])
 
   transactions Transaction[]
+  payments     Payment[]
+  ledgerEntries LedgerEntry[]
 }
 
 model Transaction {
@@ -42,11 +45,83 @@ model Transaction {
   amount    Decimal @db.Decimal(12, 2)
 
   type      String
+  status    String   @default("COMPLETED")
 
   createdAt DateTime @default(now())
 
   vaultId   String
   vault     Vault @relation(fields: [vaultId], references: [id])
+
+  paymentId String?
+  payment   Payment?
+
+  @@index([vaultId, status])
+  @@index([paymentId])
+}
+
+model Payment {
+  id                String    @id @default(cuid())
+  amount            Decimal   @db.Decimal(12, 2)
+  direction         String
+  currency          String    @default("CAD")
+  status            String
+  provider          String
+  providerPaymentId String?   @unique
+  idempotencyKey    String?   @unique
+  failureReason     String?
+  metadata          Json?
+
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vaultId           String
+  vault             Vault     @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+
+  transactionId     String?   @unique
+  transaction       Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  ledgerEntries     LedgerEntry[]
+  webhookEvents     WebhookEvent[]
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  completedAt       DateTime?
+
+  @@index([userId])
+  @@index([vaultId])
+  @@index([status])
+  @@index([direction, status])
+}
+
+model LedgerEntry {
+  id                    String   @id @default(cuid())
+  vaultId               String
+  vault                 Vault    @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  paymentId             String?
+  payment               Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  accountType           String
+  entryType             String
+  amount                Decimal  @db.Decimal(12, 2)
+  availableBalanceAfter Decimal? @db.Decimal(12, 2)
+  createdAt             DateTime @default(now())
+
+  @@index([vaultId, accountType])
+  @@index([paymentId])
+}
+
+model WebhookEvent {
+  id              String    @id @default(cuid())
+  provider        String
+  providerEventId String
+  eventType       String
+  payload         Json
+  paymentId       String?
+  payment         Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  processedAt     DateTime?
+  processingError String?
+  createdAt       DateTime  @default(now())
+
+  @@unique([provider, providerEventId])
+  @@index([paymentId])
 }
 
 model PasswordResetToken {
@@ -60,4 +135,3 @@ model PasswordResetToken {
 
   @@index([userId])
 }
-

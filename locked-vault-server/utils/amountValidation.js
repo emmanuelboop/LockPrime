@@ -4,7 +4,13 @@ const createValidationError = (message) => {
     return error;
 };
 
-const { hasValidMoneyPrecision, serializeMoney, MAX_MONEY_AMOUNT } = require("./money");
+const {
+    hasValidMoneyPrecision,
+    serializeMoney,
+    MAX_MONEY_AMOUNT,
+    moneyGreaterThan,
+    toMoneyDecimal,
+} = require("./money");
 
 const parseAmount = (amount) => {
     if (amount === undefined || amount === null || amount === "") {
@@ -27,7 +33,7 @@ const normalizeMoneyAmount = (parsed) => {
         );
     }
 
-    if (parsed > MAX_MONEY_AMOUNT) {
+    if (moneyGreaterThan(toMoneyDecimal(parsed), MAX_MONEY_AMOUNT)) {
         throw createValidationError(
             "Amount exceeds the maximum allowed value"
         );

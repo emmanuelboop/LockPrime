@@ -560,6 +560,12 @@ function VaultDetailsModal({ vault, refreshVaults }) {
 
                                                     ).toLocaleString()}
 
+                                                    {transaction.status &&
+                                                    transaction.status !==
+                                                        "COMPLETED"
+                                                        ? ` · ${transaction.status.toLowerCase()}`
+                                                        : ""}
+
                                                 </p>
 
                                             </div>

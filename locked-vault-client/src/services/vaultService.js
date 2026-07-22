@@ -17,23 +17,33 @@ export const createVault = async (vaultData) => {
   return response.data;
 };
 
-export const depositMoney = async (vaultId, amount) => {
+export const depositMoney = async (vaultId, amount, idempotencyKey) => {
+  const headers = idempotencyKey
+    ? { "Idempotency-Key": idempotencyKey }
+    : undefined;
+
   const response = await api.post(
     `/api/vaults/${vaultId}/deposit`,
     {
       amount,
-    }
+    },
+    { headers }
   );
 
   return response.data;
 };
 
-export const withdrawMoney = async (vaultId, amount) => {
+export const withdrawMoney = async (vaultId, amount, idempotencyKey) => {
+  const headers = idempotencyKey
+    ? { "Idempotency-Key": idempotencyKey }
+    : undefined;
+
   const response = await api.post(
     `/api/vaults/${vaultId}/withdraw`,
     {
       amount,
-    }
+    },
+    { headers }
   );
 
   return response.data;

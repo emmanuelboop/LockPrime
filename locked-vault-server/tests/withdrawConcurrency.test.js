@@ -4,6 +4,7 @@ const { describe, it, before, beforeEach, after } = require("node:test");
 const assert = require("node:assert/strict");
 
 const { prisma, resetDatabase, disconnect, ensureDatabaseConnection } = require("./setup");
+const { createFundedVault } = require("./helpers");
 const vaultService = require("../services/vaultService");
 const { serializeMoney } = require("../utils/money");
 
@@ -29,14 +30,7 @@ describe("withdrawMoney concurrency", () => {
             },
         });
 
-        const vault = await prisma.vault.create({
-            data: {
-                name: "Concurrency Vault",
-                balance: 100,
-                unlockDate: new Date(Date.now() - 86400000),
-                userId: user.id,
-            },
-        });
+        const vault = await createFundedVault(user.id, 100);
 
         const amount = 80;
         const attempts = await Promise.allSettled([

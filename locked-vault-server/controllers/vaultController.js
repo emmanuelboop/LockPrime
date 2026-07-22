@@ -43,39 +43,37 @@ const getVaults = async (req, res) => {
 
 const depositMoney = async (req, res) => {
     try {
+        const idempotencyKey =
+            req.get("Idempotency-Key") || req.body.idempotencyKey;
 
-        const updatedVault =
-            await vaultService.depositMoney(
-                req.params.vaultId,
-                req.body.amount,
-                req.user.userId
-            );
+        const result = await vaultService.depositMoney(
+            req.params.vaultId,
+            req.body.amount,
+            req.user.userId,
+            { idempotencyKey }
+        );
 
-        res.json(updatedVault);
-
+        res.json(result);
     } catch (error) {
-
         sendError(error, res);
-
     }
 };
 
 const withdrawMoney = async (req, res) => {
     try {
+        const idempotencyKey =
+            req.get("Idempotency-Key") || req.body.idempotencyKey;
 
-        const updatedVault =
-            await vaultService.withdrawMoney(
-                req.params.vaultId,
-                req.body.amount,
-                req.user.userId
-            );
+        const result = await vaultService.withdrawMoney(
+            req.params.vaultId,
+            req.body.amount,
+            req.user.userId,
+            { idempotencyKey }
+        );
 
-        res.json(updatedVault);
-
+        res.json(result);
     } catch (error) {
-
         sendError(error, res);
-
     }
 };
 

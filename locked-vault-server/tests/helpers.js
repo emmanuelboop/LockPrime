@@ -1,6 +1,11 @@
 const request = require("supertest");
 const app = require("../app");
 const { prisma } = require("./setup");
+const { toMoneyDecimal } = require("../utils/money");
+const {
+    LEDGER_ACCOUNT_TYPE,
+    LEDGER_ENTRY_TYPE,
+} = require("../payments/constants");
 
 const createUserAndToken = async (overrides = {}) => {
     const email =
@@ -68,6 +73,41 @@ const setVaultUnlocked = async (vaultId) => {
     });
 };
 
+const seedVaultLedgerBalance = async (vaultId, balance) => {
+    const decimalBalance = toMoneyDecimal(balance);
+
+    await prisma.ledgerEntry.upsert({
+        where: { id: `opening_${vaultId}` },
+        create: {
+            id: `opening_${vaultId}`,
+            vaultId,
+            accountType: LEDGER_ACCOUNT_TYPE.AVAILABLE,
+            entryType: LEDGER_ENTRY_TYPE.OPENING_BALANCE,
+            amount: decimalBalance,
+            availableBalanceAfter: decimalBalance,
+        },
+        update: {
+            amount: decimalBalance,
+            availableBalanceAfter: decimalBalance,
+        },
+    });
+};
+
+const createFundedVault = async (userId, balance, overrides = {}) => {
+    const vault = await prisma.vault.create({
+        data: {
+            name: overrides.name || "Funded Vault",
+            balance: toMoneyDecimal(balance),
+            unlockDate: overrides.unlockDate ?? new Date(Date.now() - 86400000),
+            userId,
+        },
+    });
+
+    await seedVaultLedgerBalance(vault.id, balance);
+
+    return vault;
+};
+
 module.exports = {
     request,
     app,
@@ -76,4 +116,6 @@ module.exports = {
     createVault,
     lockVault,
     setVaultUnlocked,
+    seedVaultLedgerBalance,
+    createFundedVault,
 };
